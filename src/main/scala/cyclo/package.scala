@@ -1,7 +1,23 @@
 import scala.collection.immutable.SortedMap
 import scala.collection.generic.CanBuildFrom
 
+import spire.math.{Rational, SafeLong}
+
 package object cyclo {
+
+  type Integer = SafeLong
+  final val Integer = SafeLong
+
+  type Coeffs = SortedMap[Integer, Rational]
+
+  object Coeffs {
+
+    def apply(elements: (Integer, Rational)*): Coeffs =
+      SortedMap[Integer, Rational](elements.filterNot(_._2.isZero): _*)
+
+    def empty: Coeffs = SortedMap.empty[Integer, Rational]
+
+  }
 
   implicit class RichSortedMap[K, V](m: SortedMap[K, V]) {
 
@@ -19,9 +35,9 @@ package object cyclo {
       val mb = SortedMap.newBuilder[K, V1]
       for (k <- allKeys) {
         (m.get(k), m1.get(k)) match {
-          case (Some(v), Some(v1)) => (k, f(v, v1))
-          case (None, Some(v1)) => v1
-          case (Some(v), None) => v
+          case (Some(v), Some(v1)) => mb += ((k, f(v, v1)))
+          case (None, Some(v1)) => mb += ((k, v1))
+          case (Some(v), None) => mb += ((k, v))
           case (None, None) => sys.error("Never happens")
         }
       }
