@@ -1,5 +1,6 @@
 package cyclo
 
+import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap
 import scala.collection.generic.CanBuildFrom
 import scala.util.{Try, Success, Failure}
@@ -8,17 +9,27 @@ import spire.algebra._
 import spire.compat._
 import spire.math.{Complex, Rational, SafeLong}
 import spire.std.int._
+import spire.std.double._
 import spire.std.map._
 import spire.syntax.all._
+import spire.util.Opt
 
-case class Cyclo(order: Integer, coeffs: SortedMap[Integer, Rational]) { lhs =>
+class Cyclo(val order: Int, protected[cyclo] val exps: Array[Int], protected[cyclo] val values: Array[Rational]) { lhs =>
+/*
+  def multiplyExponents(j: Int): Cyclo =
+    if (!spire.math.gcd(j, order).isOne)
+      sys.error("multiplyExponents needs gcd == 1")
+    else
+      Reduction.mkCyclotomic(order, coeffs.mapKeys(k => (j * k) % order))
+
+  def numberOfCoeffs: Int = coeffs.size // TODO: remove
 
   override def toString: String = {
 
-    def showBaseExp(ex: Integer): String =
+    def showBaseExp(ex: Int): String =
       if (ex.isOne) s"e($order)" else s"e($order)^$ex"
 
-    def leadingTerm(r: Rational, ex: SafeLong): String =
+    def leadingTerm(r: Rational, ex: Int): String =
       if (ex.isZero) r.toString else {
         val t = showBaseExp(ex)
         if (r.isOne) t
@@ -28,12 +39,12 @@ case class Cyclo(order: Integer, coeffs: SortedMap[Integer, Rational]) { lhs =>
         else ""
       }
 
-    def followingTerms(list: List[(Integer, Rational)]): String = list match {
+    def followingTerms(list: List[(Int, Rational)]): String = list match {
       case Nil => ""
       case (ex, rat) :: xs => followingTerm(rat, ex) + followingTerms(xs)
     }
 
-    def followingTerm(r: Rational, ex: Integer): String = {
+    def followingTerm(r: Rational, ex: Int): String = {
       val t = showBaseExp(ex)
       if (r.isOne) s" + $t"
       else if (r == -1) s" - $t"
@@ -59,13 +70,13 @@ case class Cyclo(order: Integer, coeffs: SortedMap[Integer, Rational]) { lhs =>
     val m1 = ord / o1
     val m2 = ord / o2
     // TODO: optimize
-    var mp = SortedMap.empty[Integer, Rational]
+    var mp = SortedMap.empty[Int, Rational]
     for( (e1, c1) <- map1; (e2, c2) <- map2 ) {
       val k = (m1 * e1 + m2 * e2) % ord
       val v = c1 * c2
       mp = mp.insertWith(k, v, _ + _)
     }
-    Cyclo(ord, mp)
+    Reduction.mkCyclotomic(ord, mp)
   }
 
   def /(rhs: Cyclo): Cyclo = this * rhs.reciprocal
@@ -92,10 +103,13 @@ case class Cyclo(order: Integer, coeffs: SortedMap[Integer, Rational]) { lhs =>
   def isGaussianRat: Boolean = real.isRat && imag.isRat // TODO
 
   // TODO: rename to toDouble
-  def toReal: Option[Double] =
+  def toDouble: Option[Double] =
     if (isReal) Some(toComplex.real) else None
 
-  def toComplex: Complex[Double] = ??? // TODO: implement
+  def toComplex: Complex[Double] =
+    coeffs.foldLeft(Complex.zero[Double]) {
+      case (sum, (exp, r)) => sum + Complex.rootOfUnity[Double](order.toInt, exp.toInt) * Complex(r.toDouble) // TODO remove toInt
+    }
 
   def toRat: Option[Rational] =
     if (order.isOne)
@@ -111,25 +125,25 @@ case class Cyclo(order: Integer, coeffs: SortedMap[Integer, Rational]) { lhs =>
     }
   }
 
-  def **(pow: Integer): Cyclo = // TODO: repeated squaring
+  def **(pow: Int): Cyclo = // TODO: repeated squaring
       if (pow == 0) Cyclo.zero
       else if (pow == 1) this
       else if (pow < 0) (this ** (-pow)).reciprocal
-      else this ** (pow - 1)
+      else this * (this ** (pow - 1))
 
   def conj: Cyclo = Reduction.mkCyclotomic(order, coeffs.mapKeys(k => (order - k) % order))
 
-  def real: Cyclo = (this + conj) / 2
+  def real: Cyclo = (this + conj) * Rational(1, 2)
 
   def imag: Cyclo = (this - conj) / (2*Cyclo.i)
-
+ */
 }
-
+/*
 trait CycloEq extends Eq[Cyclo] {
 
   def eqv(x: Cyclo, y: Cyclo) =
     (x.order === y.order) &&
-    ((x.coeffs: Map[Integer, Rational]) === (y.coeffs: Map[Integer, Rational]))
+    ((x.coeffs: Map[Int, Rational]) === (y.coeffs: Map[Int, Rational]))
 
 }
 
@@ -148,13 +162,13 @@ trait CycloField extends Field[Cyclo] {
   def abs(c: Cyclo) = Cyclo.absVal(c)
   // TODO: check interface
   override def fromInt(n: Int) =
-    if (n == 0) Cyclo.zero else Cyclo(1, SortedMap(Integer(0) -> Rational(n)))
+    if (n == 0) Cyclo.zero else Cyclo(1, SortedMap(Int(0) -> Rational(n)))
 
   override def reciprocal(c: Cyclo) = c.reciprocal
 
   def div(c1: Cyclo, c2: Cyclo) = c1 / c2
 
-  def one = Cyclo(1, SortedMap(Integer(0) -> Rational.one))
+  def one = Cyclo(1, SortedMap(Int(0) -> Rational.one))
 
   def gcd(c1: Cyclo, c2: Cyclo): Cyclo = ???
   def mod(c1: Cyclo, c2: Cyclo): Cyclo = ???
@@ -169,7 +183,7 @@ object Cyclo {
   val zero = Cyclo(1, Coeffs.empty)
 
   implicit def fromRational(r: Rational): Cyclo =
-    if (r.isZero) Cyclo.zero else Cyclo(1, Coeffs(Integer(0) -> r))
+    if (r.isZero) Cyclo.zero else Cyclo(1, Coeffs(Int(0) -> r))
 
   val one = fromRational(Rational.one)
 
@@ -177,53 +191,48 @@ object Cyclo {
 
   implicit val equ: Eq[Cyclo] = new CycloEq { }
 
-  def e(n: Integer): Cyclo =
+  def e(n: Int): Cyclo =
     if (n < 1) sys.error("e requires a positive integer")
     else if (n == 1) Cyclo.one
-    else cyclotomic(n, convertToBase(n, SortedMap(Integer(1) -> Rational.one)))
+    else cyclotomic(n, convertToBase(n, SortedMap(Int(1) -> Rational.one)))
 
-  implicit class CycloIterable(cs: Traversable[Cyclo]) {
-
-    def sumAll: Cyclo = if (cs.isEmpty) zero else cs.reduce(_ + _)
-
-    def productAll: Cyclo = if (cs.isEmpty) fromRational(0) else cs.reduce(_ * _)
-
-  }
-
-  def eb(n: Integer): Cyclo =
+  def eb(n: Int): Cyclo =
     if (n < 1) sys.error("eb needs a positive integer")
     else if (n % 2 != 1) sys.error("eb needs an odd integer")
     else if (n == 1) zero
     else {
       val en = e(n)
-      enumFromTo(1, (n - 1) / 2).map(k => en**((k*k) % n)).sumAll
+      @tailrec def loop(k: Int, sum: Cyclo): Cyclo =
+        if (k > (n - 1) / 2) sum
+        else loop(k + 1, sum + en ** ((k * k) % n))
+      loop(1, Cyclo.zero)
     }
 
   def sqrt2: Cyclo = e(8) - e(8)**3
 
-  def factorise(n: Integer): Map[Integer, Int] = spire.math.prime.Factors(n).toMap
+  def factorise(n: Int): Map[Int, Int] = spire.math.prime.Factors(n).toMap
 
-  def sqrtInteger(n: Integer): Cyclo =
+  def sqrtInt(n: Int): Cyclo =
     if (n.signum == 0) zero
-    else if (n.signum < 0) i * sqrtPositiveInteger(-n)
-    else sqrtPositiveInteger(n)
+    else if (n.signum < 0) i * sqrtPositiveInt(-n)
+    else sqrtPositiveInt(n)
 
-  def sqrtPositiveInteger(n: Integer): Cyclo =
-    if (n < 1) sys.error("sqrtPositiveInteger needs a positive integer")
+  def sqrtPositiveInt(n: Int): Cyclo =
+    if (n < 1) sys.error("sqrtPositiveInt needs a positive integer")
     else {
-      val factors = factorise(n)
-      val factor = factors.map { case (p, m) => p**(m / 2) }.product
-      val nn = factors.map { case (p, m) => p**(m % 2) }.product
-      (nn % 4).toInt match {
-        case 1 => (eb(nn) * 2 + 1) * factor
-        case 2 => (sqrt2 * sqrtPositiveInteger(nn / 2)) * factor
-        case 3 => -i * (eb(nn) * 2 + 1) * factor
-        case _ => sqrtPositiveInteger(nn / 4) * (factor * 2)
+      val factors = Factors(n.toInt) // TODO replace
+      val factor = factors.squarePartSqrt
+      val squareFreePart = factors.squareFreePart
+      (squareFreePart % 4).toInt match {
+        case 1 => (eb(squareFreePart) * 2 + 1) * factor
+        case 2 => (sqrt2 * sqrtPositiveInt(squareFreePart / 2)) * factor
+        case 3 => -i * (eb(squareFreePart) * 2 + 1) * factor
+        case _ => sqrtPositiveInt(squareFreePart / 4) * (factor * 2)
       }
     }
 
   def sqrtRat(r: Rational): Cyclo =
-    sqrtInteger(r.numerator * r.denominator) * Rational(1, r.denominator)
+    sqrtInt(r.numerator * r.denominator) * Rational(1, r.denominator)
 
   val i: Cyclo = e(4)
 
@@ -253,19 +262,13 @@ object Cyclo {
   def sigNum(c: Cyclo): Cyclo =
     if (c.isZero) zero else absVal(c).map( a => c / a).get // TODO: throws
 
-  def convertToBase(n: Integer, mp: SortedMap[Integer, Rational]): SortedMap[Integer, Rational] =
-    extraneousPowers(n).foldRight(mp) {
-      case ((p, r), m) => replace(n, p, r, m)
-    }
-
-  def removeZeros(mp: SortedMap[Integer, Rational]): SortedMap[Integer, Rational] =
-    mp.filterNot { case (k, v) => v.isZero }
 
   def productOfGaloisConjugates(c: Cyclo): Cyclo = {
-    enumFromTo(2, c.order)
-      .filter( j => j.gcd(c.order).isOne )
-      .map( j => multiplyExponents(j, c) )
-      .productAll
+    @tailrec def loop(j: Int, prd: Cyclo): Cyclo =
+      if (j == c.order) prd
+      else if (spire.math.gcd(c.order.toInt, j) == 1) loop(j + 1, prd * c.multiplyExponents(j)) // TODO
+      else loop(j + 1, prd)
+    loop(2, Cyclo.one)
   }
 
   def sinDeg(d: Rational): Cyclo = sinRev(d/ 360)
@@ -287,3 +290,4 @@ object Cyclo {
   }
 
 }
+ */

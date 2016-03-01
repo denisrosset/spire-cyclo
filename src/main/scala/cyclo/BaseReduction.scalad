@@ -1,0 +1,84 @@
+package cyclo
+
+import scala.collection.immutable.SortedMap
+import scala.collection.generic.CanBuildFrom
+import scala.util.{Try, Success, Failure}
+
+import spire.algebra._
+import spire.compat._
+import spire.math.{Complex, Rational, SafeLong}
+import spire.std.int._
+import spire.std.map._
+import spire.syntax.all._
+import spire.util.Opt
+
+object BaseReduction {
+
+  @tailrec def removeFactor(i: Int, factor: Int): Int =
+    if (i % factor == 0) removeFactor(i / factor) else i
+
+  /* For all primes `p` try to reduce from `Q(e_n)` into `Q(e_{n/p})`.
+   * The cyclotomic number must already have been converted into the
+   * base.
+   * 
+   * `m` must be a divisor of `c.order` and gives a  hint about possible subfields.
+   * If a prime `p` divides `m`, it means that no reduction into a subfield whose order
+   * is `n /  p`  is possible. In the arithmetic functions you can take
+   * `lcm(n_l,n_r) / gcd(n_l,n_r) = n / gcd(n_l,n_r)`. If you can not provide
+   * such a hint just pass 1.
+   * 
+   * See GAP cyclotom.c function Cyclotomic.
+   */
+  def apply(c: BaseCyclo, hint: Int): Cyclo = {
+    var current = c
+    val factors = Factors(c.order)
+    val gcd = spire.math.gcd(factors.phi, c.coeffs.size)
+    // Main loop to try reduction
+    // `order` and `coeffs` define the current cyclotomic under reduction
+    // `p` is the factor to test, and `rem` the remaining part of `order` after
+    // removal of previous factors
+    @tailrec def loop(order: Int, coeffs: Coeffs, p: Int, rem: Int): BaseCyclo =
+      if (p <= rem ** p - 1 <= gcd) {
+        val nextP = p + 2
+        val nextRem = removeFactor(rem / p, p)
+        /* If `p` is not quadratic and the number of terms is divisible
+         * by `p-1` and `p` does not divide `m`, then a reduction is possible.
+         */
+        val cond1 = order % (p * p) != 0 // the order is not quadratic in `p`
+        val cond2 = coeffs.size % (p - 1) == 0 // number of terms is divisible by `p-1`
+        val cond3 = hint % p != 0 // `p` divides `hint`
+        if (cond1 && cond2 && cond3) {
+          // test that coeffs for exponents congurent mod `order/p` are equal
+          @tailrec def allEqualInner(cof: Rational, i: Int, k: Int): Boolean =
+            if (k < i + n) {
+              if (coeffs.getOrElse(k % order) == cof) allEqualInner(cof, i, k + order/p)
+              else false
+            } else true
+          @tailrec def allEqual(i: Int): Boolean =
+            if (i < order) {
+              val cof = coeffs.getOrElse((i + order/p) % order, Rational.zero)
+              if (allEqualInner(cof, i, i + 2*order/p)) allEqual(i + p)
+              else false
+            } else true
+          if (allEqual(0)) {
+            /* Replace every sum of `p - 1` terms with exponents congruent
+             * to `i * p` mod `order / p` by the term with exponent `i * p`
+             * It is the inverse transformation of `ConvertToBase`. */
+            val mm = scala.collection.mutable.Map[Integer, Rational](coeffs: _*)
+            cforRange(0 until order by p) { i =>
+              val cof = -coeffs.getOrElse((i + order / p) % order, Rational.zero)
+              mm(i) = cof
+              cforRange((i + order/p) until (i + n) by (order/p)) { k =>
+                mm.remove(k % order)
+              }
+            }
+            cforRange(1 until order/p) { i =>
+              mm(i) = mm(i * p)
+              mm.remove(i * p)
+            }
+            loop(order / p, Coeffs(mm: _*), nextP, nextRem)
+          } else loop(order, coeffs, nextP, nextRem)
+        } else loop(order, coeffs, nextP, nextRem)
+      } else BaseCyclo(order, coeffs)
+    }
+}

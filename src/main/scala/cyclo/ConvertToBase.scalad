@@ -1,0 +1,115 @@
+package cyclo
+
+import scala.collection.immutable.SortedMap
+import scala.collection.generic.CanBuildFrom
+import scala.util.{Try, Success, Failure}
+
+import spire.algebra._
+import spire.compat._
+import spire.math.{Complex, Rational, SafeLong}
+import spire.std.int._
+import spire.std.map._
+import spire.syntax.all._
+import spire.util.Opt
+
+
+object ConvertToBase {
+
+/**
+  * Converts the given cyclotomic from the cyclotomic field of `n`-th roots
+  * of unity into the base form. This means that it replaces every root `e_n^i`
+  * that does not belong to the  base by a sum of other roots that do.
+  *
+  * Suppose that $c*e_n^i$ appears in the cyclotomic but that `e_n^i` does not lie
+  * in the base. This happens because, for some prime `p` dividing `n`, with
+  * maximal power `q`, `i \in (n/q)*[-(q/p-1)/2..(q/p-1)/2]` mod `q`.
+  *
+  * We take the identity  `1+e_p+e_p^2+..+e_p^{p-1}=01, write it using `n`-th
+  * roots of unity, `0=1+e_n^{n/p}+e_n^{2n/p}+..+e_n^{(p-1)n/p}` and multiply
+  * it by `e_n^i`, `0=e_n^i+e_n^{n/p+i}+e_n^{2n/p+i}+..+e_n^{(p-1)n/p+i}`.
+  * Now we subtract `c` times the left hand side from the given cyclotomic.
+  *
+  * If $p^2$  does not divide  $n$ then the roots  that are  not in the  base
+  * because of $p$ are those  whose exponent is divisable  by $p$.  But $n/p$
+  * is not  divisable by $p$, so  neither of the exponent $k*n/p+i, k=1..p-1$
+  * is divisable by $p$, so those new roots are acceptable w.r.t. $p$.
+  *
+  * A similar argument shows that  the new  roots  are also acceptable w.r.t.
+  * $p$ even if $p^2$ divides $n$...
+  *
+  * Note that the new roots might still not lie  in the  case because of some
+  * other prime $p2$.  However, because $i = k*n/p+i$ mod $p2$, this can only
+  * happen if $e_n^i$ did also not lie in the base because of $p2$.  So if we
+  * remove all  roots that lie in  the base because  of $p$, the later steps,
+  * which remove the roots that are not in the base because of larger primes,
+  * will not add new roots that do not lie in the base because of $p$ again.
+  *
+  * For an example, suppose 'TLS(ResultCyc)' is $e_{45}+e_{45}^5 =: e+e^5$.  $e^5$
+  * does  not lie in the  base  because $5  \in 5*[-1,0,1]$  mod $9$ and also
+  * because it is  divisable  by 5.  After  subtracting  $e^5*(1+e_3+e_3^2) =
+  * e^5+e^{20}+e^{35}$ from  'TLS(ResultCyc)' we get $e-e^{20}-e^{35}$.  Those two
+  * roots are  still not  in the  base because of  5.  But  after subtracting
+  * $-e^{20}*(1+e_5+e_5^2+e_5^3+e_5^4)=-e^{20}-e^{29}-e^{38}-e^2-e^{11}$  and
+  * $-e^{35}*(1+e_5+e_5^2+e_5^3+e_5^4)=-e^{35}-e^{44}-e^8-e^{17}-e^{26}$   we
+  * get  $e+e^{20}+e^{29}+e^{38}+e^2+e^{11}+e^{35}+e^{44}+e^8+e^{17}+e^{26}$,
+  * which contains only roots that lie in the base.
+  *
+  * 'ConvertToBase' and 'Cyclotomic' are the functions that  know  about  the
+  * structure of the base.  'EqCyc' and 'LtCyc' only need the  property  that
+  * the representation of  all  cyclotomic  integers  is  unique.  All  other
+  * functions dont even require that cyclotomics  are  written  as  a  linear
+  * combination of   linear  independent  roots,  they  would  work  also  if
+  * cyclotomic integers were written as polynomials in $e_n$.
+  *
+  * The inner loops in this function have been duplicated to avoid using  the
+  * modulo ('%') operator to reduce the exponents into  the  range  $0..n-1$.
+  * Those divisions are quite expensive  on  some  processors, e.g., MIPS and
+  * SPARC, and they may singlehanded account for 20 percent of the runtime.
+  */
+  def convertToBase(cyclo: GenericCyclo): BaseCyclo = {
+
+  }
+
+
+  /*
+  def convertToBase(cyclo: GenericCyclo): SortedMap[Integer, Rational] =
+    extraneousPowers(n).foldRight(mp) {
+      case ((p, r), m) => replace(n, p, r, m)
+    }
+
+  def removeExps(n: Integer, p: Integer, q: Integer): List[Integer] = {
+    val ndq = n / q
+    if (p == 2) enumFromTo(q / 2, q - 1).map(_ * ndq).toList.flatMap(includeMods(n, q, _))
+    else {
+      val m = (q / p - 1) / 2
+      enumFromTo(-m, m).map(_ * ndq).toList.flatMap(includeMods(n, q, _))
+    }
+  }
+
+  def extraneousPowers(n: Integer): List[(Integer, Integer)] =
+    if (n < 1) sys.error("extraneousPowers needs a positive integer")
+    else
+      pqPairs(n)
+        .flatMap { case (p, q) => removeExps(n, p, q).map( r => (p, r) ) }
+        .distinct
+
+
+  def pqPairs(n: Integer): List[(Integer, Integer)] =
+    factorise(n).toList.map { case (p, k) => (p, p ** k) }
+
+    def replacements(n: Integer, p: Integer, r: Integer): List[Integer] = {
+    val s = n / p
+    enumFromThenTo(r-s, r-2*s, 0).toList ::: enumFromThenTo(r+s, r+2*s, n - 1).toList
+  }
+
+  def replace(n: Integer, p: Integer, r: Integer, mp: Coeffs): Coeffs = mp.get(r) match {
+    case None => mp
+    case Some(rat) => replacements(n, p, r).foldRight(mp - r) {
+      case (k, m) => m.insertWith(k, -rat, _ + _)
+    }
+  }
+
+  def includeMods(n: Integer, q: Integer, start: Integer): List[Integer] =
+    List(start) ++ enumFromThenTo(start - q, start - 2 * q, 0) ++ enumFromThenTo(start + q, start + 2 * q, n - 1)*/
+
+}

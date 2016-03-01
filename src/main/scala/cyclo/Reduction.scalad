@@ -1,0 +1,32 @@
+package cyclo
+
+import scala.collection.immutable.SortedMap
+import scala.collection.generic.CanBuildFrom
+import scala.util.{Try, Success, Failure}
+
+import spire.algebra._
+import spire.compat._
+import spire.math.{Complex, Rational, SafeLong}
+import spire.std.int._
+import spire.std.map._
+import spire.syntax.all._
+import spire.util.Opt
+
+object Reduction {
+
+  import Cyclo._
+  // Corresponds to GAP implementation.
+  // Expects that convertToBase has already been done.
+
+  // from Cyclotomic in cyclotom.c
+  // requires that mp is already converted to the base
+  def cyclotomic(cyclo: BaseCyclo): Cyclo = {
+    val step1 = GcdReduction(BaseCyclo(ord, mp))
+    val step2 = RationalReduction(step1)
+    val step3 = BaseReduction(step2)
+    Cyclo(step3.order, step3.coeffs)
+  }
+
+  def mkCyclotomic(cyclo: GenericCyclo): Cyclo = ConvertToBase(cyclo)
+
+}

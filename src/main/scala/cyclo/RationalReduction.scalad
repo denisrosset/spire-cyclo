@@ -1,0 +1,48 @@
+package cyclo
+
+import scala.collection.immutable.SortedMap
+import scala.collection.generic.CanBuildFrom
+import scala.util.{Try, Success, Failure}
+
+import spire.algebra._
+import spire.compat._
+import spire.math.{Complex, Rational, SafeLong}
+import spire.std.int._
+import spire.std.map._
+import spire.syntax.all._
+import spire.util.Opt
+
+object RationalReduction {
+
+  protected def allCoeffsEqual(coeffs: Coeffs): Opt[Rational] =
+    if (coeffs.size == 0) Opt.empty[Rational] // TODO: check the case of empty Cyclo
+    else {
+      val it = coeffs.valuesIterator
+      val first = it.next
+      @tailrec def loop(it: Iterator[Rational]): Opt[Rational] =
+        if (it.hasNext) {
+          val el = it.next
+          if (el =!= first) Opt.empty[Rational] else loop(it)
+        } else Opt(first)
+      loop(it)
+    }
+
+  /** If possible, reduce into the rationals.
+    * Expects that convertToBase has already been done, and zeros removed.
+    * 
+    * See GAP cyclotom.c function Cyclotomic
+    */
+  def apply(c: BaseCyclo): BaseCyclo = {
+    val factors = Factors(c.order.toInt) // TODO remove toInt
+    if (c.numberOfCoeffs === factors.phi && factors.isSquareFree) {
+      c.allCoeffsEqual match {
+        /* return as rational `(-1)^{number of primes}*{common coefficient}`  */
+        case Opt(r) =>
+          val sign = if (factors.numberOfCoeffs % 2 == 0) 1 else -1
+          fromRational(sign * r)
+        case _ => c
+      }
+    } else c
+  }
+
+}
