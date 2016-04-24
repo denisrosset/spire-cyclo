@@ -31,6 +31,8 @@ homepage := Some(url("https://github.com/denisrosset/spire-cyclo"))
 
 licenses += ("GPL-3.0", url("http://opensource.org/licenses/GPL-3.0"))
 
+organization := "net.alasc"
+
 bintrayRepository := "maven"
 
 publishArtifact in Test := false
