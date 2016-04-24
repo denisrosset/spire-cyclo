@@ -41,6 +41,7 @@ class WorkCyclo(
   // to call after gcdReduction, reduceRational, reduceBasis have been applied
   def reduceToCyclo(hint: Int = 1): Cyclo = {
     Reduction.gcdReduction(this)
+    if (numberNonZero == 0) return Cyclo.zero
     OrderProperties(this)
     if (Reduction.reduceRational(this))
       buildCyclo()

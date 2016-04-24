@@ -16,11 +16,13 @@ import spire.syntax.eq._
 import spire.util.Opt
 
 final class Cyclo(val order: Int, // order of the cyclotomic
-  protected[cyclo] val exps: Array[Int], // exponents of the cyclotomic, in 0 .. order -1, increasing
-  protected[cyclo] val coeffs: Array[Rational] // corresponding (non-zero) values
-) { lhs =>
+                  protected[cyclo] val exps: Array[Int], // exponents of the cyclotomic, in 0 .. order -1, increasing
+                  protected[cyclo] val coeffs: Array[Rational] // corresponding (non-zero) values
+                 ) { lhs =>
 
   def nTerms: Int = exps.length
+
+  def isZero: Boolean = nTerms == 0
 
   @inline def exponent(i: Int): Int = exps(i)
 
@@ -62,7 +64,7 @@ final class Cyclo(val order: Int, // order of the cyclotomic
     }
 
   /** Returns whether the two cyclotomics `lhs` and `rhs` are equal.
-    * 
+    *
     * This is pretty simple because every cyclotomic has an unique
     * representation, so we just have to compare the terms.
     */
@@ -220,7 +222,7 @@ final class Cyclo(val order: Int, // order of the cyclotomic
           loop(base * base, rem >>> 1, x)
         }
       if (rhs < 0) { // if exponent is negative, invert the cyclotomic
-        val rec = lhs.reciprocal
+      val rec = lhs.reciprocal
         loop(rec, -rhs-1, rec)
       } else loop(lhs, rhs-1, lhs)
     }
@@ -231,7 +233,7 @@ final class Cyclo(val order: Int, // order of the cyclotomic
     /* Compute the product of all nontrivial galois conjugates of `lhs`. */
     cforRange(2 until order) { i =>
       if (pos(order).coprimeTo(pos(i))) { // if `i` gives a galois automorphism, apply it
-        val res = WorkCyclo(order)
+      val res = WorkCyclo(order)
         cforRange(0 until nTerms) { k =>
           res.coeffs((i*exps(k)) % order) = coeffs(k)
         }
@@ -317,7 +319,7 @@ final class Cyclo(val order: Int, // order of the cyclotomic
         res.reduceToCyclo()
       }
     }
-      
+
   def isCyclotomicInteger: Boolean = {
     cforRange(0 until nTerms) { i =>
       if (!coeffs(i).isWhole) return false
@@ -370,12 +372,9 @@ final class Cyclo(val order: Int, // order of the cyclotomic
 
 }
 
-/*
 trait CycloEq extends Eq[Cyclo] {
 
-  def eqv(x: Cyclo, y: Cyclo) =
-    (x.order === y.order) &&
-    ((x.coeffs: Map[Int, Rational]) === (y.coeffs: Map[Int, Rational]))
+  def eqv(x: Cyclo, y: Cyclo) = x === y
 
 }
 
@@ -383,24 +382,24 @@ trait CycloField extends Field[Cyclo] {
 
   def plus(c1: Cyclo, c2: Cyclo) = c1 + c2
 
-  override def minus(c1: Cyclo, c2: Cyclo) = plus(c1, negate(c2)) // TODO: faster ?
+  override def minus(c1: Cyclo, c2: Cyclo) = c1 - c2
 
   def times(c1: Cyclo, c2: Cyclo) = c1 * c2
 
-  def negate(c: Cyclo) = c * Rational(-1)
+  def negate(c: Cyclo) = -c
 
   def zero = Cyclo.zero
 
-  def abs(c: Cyclo) = Cyclo.absVal(c)
-  // TODO: check interface
+  //  def abs(c: Cyclo) = Cyclo.absVal(c)
+
   override def fromInt(n: Int) =
-    if (n == 0) Cyclo.zero else Cyclo(1, SortedMap(Int(0) -> Rational(n)))
+    if (n == 0) Cyclo.zero else Cyclo(n)
 
   override def reciprocal(c: Cyclo) = c.reciprocal
 
   def div(c1: Cyclo, c2: Cyclo) = c1 / c2
 
-  def one = Cyclo(1, SortedMap(Int(0) -> Rational.one))
+  def one = Cyclo.one
 
   def gcd(c1: Cyclo, c2: Cyclo): Cyclo = ???
   def mod(c1: Cyclo, c2: Cyclo): Cyclo = ???
@@ -408,9 +407,9 @@ trait CycloField extends Field[Cyclo] {
 
 }
 
- */
-
 object Cyclo {
+
+  implicit object algebra extends CycloEq with CycloField
 
   val maxLimit = Int.MaxValue / 2 - 1
 
@@ -506,7 +505,7 @@ object Cyclo {
   def polarRev(r: Rational, s: Rational): Cyclo = {
     val p = s.numerator
     val q = s.denominator
-    if (!p.isValidInt) sys.error(s"Rational $s is too complex, numerator $p does not fit in an Int.") 
+    if (!p.isValidInt) sys.error(s"Rational $s is too complex, numerator $p does not fit in an Int.")
     if (!(-p).isValidInt) sys.error(s"Rational $s is too complex, numerator $p does not fit in an Int.")
     if (!q.isValidInt) sys.error(s"Rational $s is too complex, denominator $q does not fit in an Int.")
     if (p.signum >= 0)
