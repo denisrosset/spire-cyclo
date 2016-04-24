@@ -27,18 +27,13 @@ resolvers ++= Seq(
   Resolver.sonatypeRepo("releases")
 )
 
-lazy val publishSettings = Seq(
-  homepage := Some(url("https://github.com/denisrosset/spire-cyclo")),
-  licenses += ("GPL-3.0", url("http://opensource.org/licenses/GPL-3.0")),
-  bintrayRepository := "maven",
-  publishArtifact in Test := false
-)
+homepage := Some(url("https://github.com/denisrosset/spire-cyclo"))
 
-lazy val noPublishSettings = Seq(
-  publish := (),
-  publishLocal := (),
-  publishArtifact := false
-)
+licenses += ("GPL-3.0", url("http://opensource.org/licenses/GPL-3.0"))
+
+bintrayRepository := "maven"
+
+publishArtifact in Test := false
 
 lazy val commonScalacOptions = Seq(
   "-deprecation",
