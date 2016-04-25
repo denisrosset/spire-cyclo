@@ -63,6 +63,21 @@ final class Cyclo(val order: Int, // order of the cyclotomic
       sb.result()
     }
 
+  override def hashCode = {
+    import scala.util.hashing.MurmurHash3._
+    val n = exps.length
+    var h = arraySeed // why not?
+    cforRange(0 until n) { i =>
+      h = mix(h, coeffs(i).hashCode * 41 + exps(i))
+    }
+    finalizeHash(h, n)
+  }
+
+  override def equals(any: Any) = any match { // TODO: cooperative equality with Rational, etc...
+    case that: Cyclo => this === that
+    case _ => false
+  }
+
   /** Returns whether the two cyclotomics `lhs` and `rhs` are equal.
     *
     * This is pretty simple because every cyclotomic has an unique
