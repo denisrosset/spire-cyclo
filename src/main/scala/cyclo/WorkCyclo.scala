@@ -22,6 +22,7 @@ class WorkCyclo(
 
   override def toString = s"WorkCyclo(order = $order, coeffs.toSeq = ${coeffs.toSeq}, cleaning = $cleaning, phi = $phi, squareFree = $squareFree, numberOfPrimes = $numberOfPrimes, numberNonZero = $numberNonZero, allEqualTo = $allEqualTo, inBase = $inBase"
 
+  // to call after gcdReduction, reduceRational, reduceBasis have been applied
   protected def buildCyclo(): Cyclo = {
     val exps = new Array[Int](numberNonZero)
     val values = new Array[Rational](numberNonZero)
@@ -38,7 +39,6 @@ class WorkCyclo(
     new Cyclo(order, exps, values)
   }
 
-  // to call after gcdReduction, reduceRational, reduceBasis have been applied
   def reduceToCyclo(hint: Int = 1): Cyclo = {
     Reduction.gcdReduction(this)
     if (numberNonZero == 0) return Cyclo.zero
