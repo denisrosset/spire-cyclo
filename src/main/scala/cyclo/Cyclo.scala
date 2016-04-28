@@ -36,24 +36,42 @@ final class Cyclo(val order: Int, // order of the cyclotomic
 
       this match {
         case Cyclo.Quadratic(a, b, d) =>
-          var hasTerm = false
-          if (!b.isZero) {
-            sb ++= "sqrt("
-            sb ++= d.toString
-            sb ++= ")*"
-            sb ++= b.toString
-            hasTerm = true
-          }
-          a.signum match {
+          val hasConstant = a.signum match {
             case -1 =>
               sb ++= "-"
               sb ++= a.abs.toString
+              true
             case 1 =>
-              if (hasTerm) sb ++= "+"
               sb ++= a.toString
-            case 0 if !hasTerm =>
-              sb ++= "0"
-            case _ =>
+              true
+            case _ => false // case 0
+          }
+          val hasSqrt = b.signum match {
+            case -1 =>
+              sb ++= "-"
+              val numAbs = -b.numerator
+              if (!numAbs.isOne) {
+                sb ++= numAbs.toString
+                sb ++= "*"
+              }
+              true
+            case 1 if hasConstant =>
+              sb ++= "+"
+              if (!b.numerator.isOne) {
+                sb ++= b.numerator.toString
+                sb ++= "*"
+              }
+              true
+            case _ => false // case 0
+          }
+          if (hasSqrt) {
+            sb ++= "sqrt("
+            sb ++= d.toString
+            sb ++= ")"
+            if (!b.denominator.isOne) {
+              sb ++= "/"
+              sb ++= b.denominator.toString
+            }
           }
         case _ =>
           val eStr = s"e($order)"
@@ -457,6 +475,8 @@ object Cyclo {
 
   implicit object algebra extends CycloEq with CycloField
 
+  implicit def viewFromRational(r: Rational): Cyclo = Cyclo(r)
+
   val maxLimit = Int.MaxValue / 2 - 1
 
   // TODO: move into an implicit
@@ -599,11 +619,13 @@ object Cyclo {
       case 1 => Opt((x.toRational, Rational.zero, 1))
       case d =>
         val sd = Cyclo.sqrt(d)
-        val nonZeroExp = if (sd.exponent(0) != 0) x.exponent(0) else x.exponent(1)
+        if (sd.order != x.order) return Opt.empty[(Rational, Rational, Int)]
+        val nonZeroExp = if (sd.exponent(0) != 0) sd.exponent(0) else sd.exponent(1)
         val b = x.coefficientForExponent(nonZeroExp) / sd.coefficientForExponent(nonZeroExp)
         val a = x - sd * b
+        val factors = Factors(d)
         a match {
-          case AsRational(ra) => Opt((ra, b, d))
+          case AsRational(ra) => Opt((ra, b * factors.squarePartSqrt, factors.squareFreePart))
           case _ => Opt.empty[(Rational, Rational, Int)]
         }
     }
