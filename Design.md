@@ -10,4 +10,4 @@ Safety guarantees
 Limits
 ------
 
-- Maximal cyclotomic order is Int.MaxValue / 2 - 1 =
+- Maximal cyclotomic order is Int.MaxValue / 2 - 1
