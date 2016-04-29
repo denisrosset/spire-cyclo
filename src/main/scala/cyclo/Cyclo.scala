@@ -55,8 +55,8 @@ final class Cyclo(val order: Int, // order of the cyclotomic
                 sb ++= "*"
               }
               true
-            case 1 if hasConstant =>
-              sb ++= "+"
+            case 1 =>
+              if (hasConstant) sb ++= "+"
               if (!b.numerator.isOne) {
                 sb ++= b.numerator.toString
                 sb ++= "*"
@@ -94,7 +94,7 @@ final class Cyclo(val order: Int, // order of the cyclotomic
             if (coeff.isOne) { sb ++= " + "; baseExp(exp) }
             else if (coeff == -1) { sb ++= " - "; baseExp(exp) }
             else if (coeff > 0) { sb ++= " + "; sb ++= coeff.toString; sb ++= "*"; baseExp(exp) }
-            else if (coeff < 0) { sb ++= " - "; sb ++= coeff.toString; sb ++= "*"; baseExp(exp) }
+            else if (coeff < 0) { sb ++= " - "; sb ++= coeff.abs.toString; sb ++= "*"; baseExp(exp) }
             else sys.error("Coefficient coeff cannot be zero")
 
           cforRange(1 until nTerms) { k =>
