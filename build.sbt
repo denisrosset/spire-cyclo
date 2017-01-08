@@ -1,7 +1,10 @@
-val disciplineVersion = "0.4"
-val scalaCheckVersion = "1.12.4"
-val scalaTestVersion = "3.0.0-M7"
-val spireVersion = "0.11.0"
+val scala211Version = "2.11.8"
+val scala212Version = "2.12.1"
+
+val disciplineVersion = "0.7.2"
+val scalaCheckVersion = "1.13.4"
+val scalaTestVersion = "3.0.1"
+val spireVersion = "0.13.0"
 
 libraryDependencies ++= Seq(
   "org.spire-math" %% "spire" % spireVersion,
@@ -11,7 +14,9 @@ libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck" % scalaCheckVersion % "test"
 )
 
-scalaVersion := "2.11.8"
+scalaVersion := scala212Version
+
+crossScalaVersions := Seq(scala211Version, scala212Version)
 
 scalacOptions ++= commonScalacOptions.diff(Seq(
     "-Xfatal-warnings",
@@ -48,7 +53,6 @@ lazy val commonScalacOptions = Seq(
   "-unchecked",
   "-Xfatal-warnings",
   "-Xlint",
-  "-Yinline-warnings",
   "-Yno-adapted-args",
   "-Ywarn-dead-code",
   "-Ywarn-numeric-widen",

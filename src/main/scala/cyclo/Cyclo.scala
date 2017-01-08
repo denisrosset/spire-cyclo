@@ -437,34 +437,24 @@ trait CycloEq extends Eq[Cyclo] {
 trait CycloField extends Field[Cyclo] {
 
   def plus(c1: Cyclo, c2: Cyclo) = c1 + c2
-
   override def minus(c1: Cyclo, c2: Cyclo) = c1 - c2
-
   def times(c1: Cyclo, c2: Cyclo) = c1 * c2
-
   def negate(c: Cyclo) = -c
-
   def zero = Cyclo.zero
-  
   override def fromInt(n: Int) =
     if (n == 0) Cyclo.zero else Cyclo(n)
 
+  def one = Cyclo.one
   override def reciprocal(c: Cyclo) = c.reciprocal
-
   def div(c1: Cyclo, c2: Cyclo) = c1 / c2
 
-  def one = Cyclo.one
 
   override def pow(a: Cyclo, n: Int): Cyclo = a.pow(n)
-
   override def lcm(a: Cyclo, b: Cyclo): Cyclo = a * b
-
   override def isZero(a: Cyclo)(implicit ev: Eq[Cyclo]) = a.isZero
 
   def gcd(c1: Cyclo, c2: Cyclo): Cyclo = Cyclo.one
-
   def mod(c1: Cyclo, c2: Cyclo): Cyclo = Cyclo.zero
-
   def quot(c1: Cyclo, c2: Cyclo): Cyclo = div(c1, c2)
 
   override def isOne(a: Cyclo)(implicit ev: Eq[Cyclo]) = a.isOne
@@ -537,7 +527,7 @@ object Cyclo {
       loop(1, Cyclo.zero)
     }
 
-  def sqrt2: Cyclo = e(8) - e(8).pow(3)
+  val sqrt2: Cyclo = e(8) - e(8).pow(3)
 
   def sqrt(r: Rational): Cyclo =
     if (r.isWhole) {
