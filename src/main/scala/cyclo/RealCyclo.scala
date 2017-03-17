@@ -11,7 +11,7 @@ trait RealCycloOrder extends Order[RealCyclo] {
 
 }
 
-trait RealCycloField extends Field[RealCyclo] {
+trait RealCycloField extends Field.WithDefaultGCD[RealCyclo] {
   def plus(c1: RealCyclo, c2: RealCyclo) = new RealCyclo(c1.underlying + c2.underlying)
   override def minus(c1: RealCyclo, c2: RealCyclo) = new RealCyclo(c1.underlying - c2.underlying)
   def times(c1: RealCyclo, c2: RealCyclo) = new RealCyclo(c1.underlying * c2.underlying)
@@ -26,12 +26,7 @@ trait RealCycloField extends Field[RealCyclo] {
 
 
   override def pow(a: RealCyclo, n: Int): RealCyclo = new RealCyclo(a.underlying.pow(n))
-  override def lcm(a: RealCyclo, b: RealCyclo): RealCyclo = new RealCyclo(a.underlying * b.underlying)
   override def isZero(a: RealCyclo)(implicit ev: Eq[RealCyclo]) = a.underlying.isZero
-
-  def gcd(c1: RealCyclo, c2: RealCyclo): RealCyclo = RealCyclo.one
-  def mod(c1: RealCyclo, c2: RealCyclo): RealCyclo = RealCyclo.zero
-  def quot(c1: RealCyclo, c2: RealCyclo): RealCyclo = div(c1, c2)
 
   override def isOne(a: RealCyclo)(implicit ev: Eq[RealCyclo]) = a.underlying.isOne
 }

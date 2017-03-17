@@ -12,13 +12,13 @@ import spire.syntax.nroot._
 case class Factors(factors: Map[Int, Int], sign: Sign) {
 
   private def prod(m: Map[Int, Int]): Int =
-    m.foldLeft(1) { case (t, (p, e)) => t * Ring[Int].prodn(p, e) }
+    m.foldLeft(1) { case (t, (p, e)) => t * Ring[Int].pow(p, e) }
 
   def isSquareFree = factors.values.forall(_ <= 1)
 
   def squarePartSqrt: Int = // TODO: optimize
     factors.foldLeft(1) {
-      case (acc, (fact, exp)) => acc * Ring[Int].prodn(fact, exp / 2)
+      case (acc, (fact, exp)) => acc * Ring[Int].pow(fact, exp / 2)
     }
 
   def squareFreePart: Int = // TODO: optimize

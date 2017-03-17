@@ -434,7 +434,7 @@ trait CycloEq extends Eq[Cyclo] {
 
 }
 
-trait CycloField extends Field[Cyclo] {
+trait CycloField extends Field.WithDefaultGCD[Cyclo] {
 
   def plus(c1: Cyclo, c2: Cyclo) = c1 + c2
   override def minus(c1: Cyclo, c2: Cyclo) = c1 - c2
@@ -450,12 +450,7 @@ trait CycloField extends Field[Cyclo] {
 
 
   override def pow(a: Cyclo, n: Int): Cyclo = a.pow(n)
-  override def lcm(a: Cyclo, b: Cyclo): Cyclo = a * b
   override def isZero(a: Cyclo)(implicit ev: Eq[Cyclo]) = a.isZero
-
-  def gcd(c1: Cyclo, c2: Cyclo): Cyclo = Cyclo.one
-  def mod(c1: Cyclo, c2: Cyclo): Cyclo = Cyclo.zero
-  def quot(c1: Cyclo, c2: Cyclo): Cyclo = div(c1, c2)
 
   override def isOne(a: Cyclo)(implicit ev: Eq[Cyclo]) = a.isOne
 
