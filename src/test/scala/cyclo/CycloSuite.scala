@@ -8,7 +8,7 @@ class CycloSuite extends CommonSuite {
 
   checkAll("Real cyclo field", spire.laws.RingLaws[RealCyclo].field)
 
-  checkAll("Real cyclo signed", spire.laws.OrderLaws[RealCyclo].signed)
+  checkAll("Real cyclo signed", spire.laws.OrderLaws[RealCyclo].truncatedDivision)
 
   checkAll("Real cyclo signed additive", spire.laws.CombinationLaws[RealCyclo].signedAdditiveAbGroup)
 

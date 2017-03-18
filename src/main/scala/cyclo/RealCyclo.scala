@@ -1,15 +1,51 @@
 package cyclo
 
-import spire.algebra.{Eq, Field, Order, Signed, SignedAdditiveAbGroup, TruncatedDivision}
+import java.math.RoundingMode
+
+import spire.algebra._
 import spire.math.{Algebraic, Rational, SafeLong}
 import spire.syntax.cfor._
 import spire.syntax.field._
 import spire.syntax.truncatedDivision._
 import spire.syntax.eq._
+import spire.util.Opt
 
 final class RealCyclo protected[cyclo](val underlying: Cyclo) {
 
-  def toAlgebraic: Algebraic = {
+  override def hashCode: Int = underlying.hashCode
+
+  override def toString: String = underlying.toString
+
+  override def equals(any: Any) = any match {
+    case that: RealCyclo => this.underlying === that.underlying
+    case that: Cyclo => this.underlying === that
+  }
+
+  def isZero: Boolean = underlying.isZero
+
+  def isOne: Boolean = underlying.isOne
+
+  def unary_- : RealCyclo = new RealCyclo(-underlying)
+
+  def +(r: Rational): RealCyclo = new RealCyclo(underlying + r)
+  def -(r: Rational): RealCyclo = new RealCyclo(underlying - r)
+  def *(r: Rational): RealCyclo = new RealCyclo(underlying * r)
+  def /(r: Rational): RealCyclo = new RealCyclo(underlying / r)
+
+  def +(r: RealCyclo): RealCyclo = new RealCyclo(underlying + r.underlying)
+  def -(r: RealCyclo): RealCyclo = new RealCyclo(underlying - r.underlying)
+  def *(r: RealCyclo): RealCyclo = new RealCyclo(underlying * r.underlying)
+  def /(r: RealCyclo): RealCyclo = new RealCyclo(underlying / r.underlying)
+
+  def pow(rhs: Int): RealCyclo = new RealCyclo(underlying.pow(rhs))
+
+  def reciprocal: RealCyclo = new RealCyclo((underlying.reciprocal))
+
+  def isRational: Boolean = underlying.isRational
+
+  def toRational: Rational = underlying.toRational
+
+  lazy val toAlgebraic: Algebraic = {
     var sum = Algebraic.Zero
     cforRange(0 until underlying.nTerms) { i =>
       sum += Algebraic(underlying.coeffs(i)) * RealCyclo.cosRevAlgebraic(Rational(underlying.exps(i), underlying.order))
@@ -20,7 +56,15 @@ final class RealCyclo protected[cyclo](val underlying: Cyclo) {
 }
 
 
-trait RealCycloSigned extends SignedAdditiveAbGroup[RealCyclo] {
+trait RealCycloTruncatedDivision extends SignedAdditiveAbGroup[RealCyclo] with TruncatedDivisionCRing[RealCyclo] {
+
+  def toBigIntOpt(x: RealCyclo): Opt[BigInt] =
+    if (!x.underlying.isRational) Opt.empty[BigInt]
+    else x.underlying.toRational.toBigIntOpt
+
+  def tquot(x: RealCyclo, y: RealCyclo): RealCyclo = RealCyclo((x / y).toAlgebraic.toBigDecimal(0, RoundingMode.DOWN).toBigInt)
+
+  def tmod(x: RealCyclo, y: RealCyclo): RealCyclo = x - tquot(x, y) * y
 
   def compare(x: RealCyclo, y: RealCyclo): Int = Order[Algebraic].compare(x.toAlgebraic, y.toAlgebraic)
 
@@ -48,11 +92,16 @@ trait RealCycloField extends Field.WithDefaultGCD[RealCyclo] {
 
 object RealCyclo {
 
-  implicit object algebra extends RealCycloSigned with RealCycloField
+  final val maxOrder = 1024
 
-  def zero = new RealCyclo(Cyclo.zero)
+  protected val firstKind = spire.math.poly.SpecialPolynomials.chebyshevsFirstKind[Rational](maxOrder)
+  protected val secondKind = spire.math.poly.SpecialPolynomials.chebyshevsSecondKind[Rational](maxOrder)
 
-  def one = new RealCyclo(Cyclo.one)
+  implicit object algebra extends RealCycloTruncatedDivision with RealCycloField
+
+  val zero = new RealCyclo(Cyclo.zero)
+
+  val one = new RealCyclo(Cyclo.one)
 
   def apply(i: Int): RealCyclo = new RealCyclo(Cyclo(i))
 
@@ -89,13 +138,13 @@ object RealCyclo {
       // Cheb first kind has roots cos( (2k-1)/(2m) * pi )
       val k = (n + 1) / 2
       val m = (d / 2)
-      val poly = spire.math.poly.SpecialPolynomials.chebyshevsFirstKind[Rational](m+1).apply(m)
+      val poly = firstKind(m)
       Algebraic.root(poly, m - k)
     } else {
       // Cheb second kind has root cos( k/(m+1) * pi )
       val k = n
       val m = (d - 1)
-      val poly = spire.math.poly.SpecialPolynomials.chebyshevsSecondKind[Rational](m+1).apply(m)
+      val poly = secondKind(m)
       Algebraic.root(poly, m - k)
     }
   }
