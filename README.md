@@ -9,4 +9,4 @@ with the original comments kept as is.
 License: GAP 3 is under a license similar in spirit to GPL.
 GAP 4 is under GPL version 2 or later.
 
-This code should morally be under the GPL version 2 or later.
+This code is published under the GPL version 2 or later.
