@@ -116,6 +116,7 @@ final class Cyclo(val order: Int, // order of the cyclotomic
 
   override def equals(any: Any) = any match { // TODO: cooperative equality with Rational, etc...
     case that: Cyclo => this === that
+    case that: RealCyclo => this === that.underlying
     case _ => false
   }
 
@@ -137,9 +138,7 @@ final class Cyclo(val order: Int, // order of the cyclotomic
 
   def =!=(rhs: Cyclo): Boolean = !(lhs === rhs)
 
-  // TODO: equals, hashCode
-
-  def unary_-(): Cyclo = {
+  def unary_- : Cyclo = {
     val newCoeffs = coeffs.clone
     cforRange(0 until newCoeffs.length) { i => newCoeffs(i) = -newCoeffs(i) }
     new Cyclo(order, exps, newCoeffs)

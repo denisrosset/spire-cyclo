@@ -11,6 +11,10 @@ object Cyclos {
     override def apply(a: Cyclo): Boolean = !a.isZero
   }
 
+  implicit object RealNonZero extends Predicate[RealCyclo] {
+    override def apply(a: RealCyclo): Boolean = !a.underlying.isZero
+  }
+
   def genNonZeroCyclo: Gen[Cyclo] = Gen.oneOf(
     for {
       n <- Gen.choose(1, 10)
@@ -32,7 +36,6 @@ object Cyclos {
     Gen.choose(1, 5).map(k => Cyclo.e(k))
   )
 
-
   implicit def arbCyclo: Arbitrary[Cyclo] = Arbitrary {
     Gen.oneOf(
       genSimpleCyclo,
@@ -43,5 +46,7 @@ object Cyclos {
       for(x <- genSimpleCyclo; y <- genSimpleCyclo) yield x - y
     )
   }
+
+  implicit def arbRealCyclo: Arbitrary[RealCyclo] = Arbitrary(arbCyclo.arbitrary.map(RealCyclo.real))
 
 }
