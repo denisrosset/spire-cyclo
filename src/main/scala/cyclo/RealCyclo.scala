@@ -6,7 +6,7 @@ import spire.algebra._
 import spire.math.{Algebraic, Rational, SafeLong}
 import spire.syntax.cfor._
 import spire.syntax.field._
-import spire.syntax.truncatedDivision._
+// import spire.syntax.truncatedDivision._
 import spire.syntax.eq._
 import spire.util.Opt
 
@@ -56,8 +56,9 @@ final class RealCyclo protected[cyclo](val underlying: Cyclo) {
 }
 
 
-trait RealCycloTruncatedDivision extends SignedAdditiveAbGroup[RealCyclo] with TruncatedDivisionCRing[RealCyclo] {
+trait RealCycloSigned extends SignedAdditiveAbGroup[RealCyclo] /* with TruncatedDivisionCRing[RealCyclo] */ {
 
+/*
   def toBigIntOpt(x: RealCyclo): Opt[BigInt] =
     if (!x.underlying.isRational) Opt.empty[BigInt]
     else x.underlying.toRational.toBigIntOpt
@@ -65,7 +66,7 @@ trait RealCycloTruncatedDivision extends SignedAdditiveAbGroup[RealCyclo] with T
   def tquot(x: RealCyclo, y: RealCyclo): RealCyclo = RealCyclo((x / y).toAlgebraic.toBigDecimal(0, RoundingMode.DOWN).toBigInt)
 
   def tmod(x: RealCyclo, y: RealCyclo): RealCyclo = x - tquot(x, y) * y
-
+ */
   def compare(x: RealCyclo, y: RealCyclo): Int = Order[Algebraic].compare(x.toAlgebraic, y.toAlgebraic)
 
 }
@@ -97,7 +98,7 @@ object RealCyclo {
   protected val firstKind = spire.math.poly.SpecialPolynomials.chebyshevsFirstKind[Rational](maxOrder)
   protected val secondKind = spire.math.poly.SpecialPolynomials.chebyshevsSecondKind[Rational](maxOrder)
 
-  implicit object algebra extends RealCycloTruncatedDivision with RealCycloField
+  implicit object algebra extends RealCycloSigned with RealCycloField
 
   val zero = new RealCyclo(Cyclo.zero)
 
@@ -149,9 +150,14 @@ object RealCyclo {
     }
   }
 
+  def fmod(lhs: SafeLong, rhs: SafeLong): SafeLong = {
+    val tm = lhs % rhs
+    if (tm.signum == -rhs.signum) tm + rhs else tm
+  } 
+
   def cosRevAlgebraic(nRev: Rational): Algebraic = {
     val d: SafeLong = nRev.denominator
-    val n: SafeLong = (nRev.numerator f_% d)
+    val n: SafeLong = fmod(nRev.numerator, d) // TODO: replace by truncated division operator
     if (n.isZero) return Algebraic.One
     if (2 * n === d) return -Algebraic.One
     if (d.isOdd) {
@@ -166,6 +172,5 @@ object RealCyclo {
         cosFracPiAlgebraic(n, d / 2)
     }
   }
-
 
 }
