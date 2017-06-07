@@ -39,6 +39,8 @@ organization := "net.alasc"
 
 bintrayRepository := "maven"
 
+releaseCrossBuild := true
+
 publishArtifact in Test := false
 
 lazy val commonScalacOptions = Seq(
