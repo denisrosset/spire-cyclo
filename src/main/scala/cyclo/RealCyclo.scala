@@ -91,15 +91,16 @@ final class RealCyclo protected[cyclo](val underlying: Cyclo) {
     }
   }
 
-  override def toString: String = {
-    val sb = new StringBuilder
-    Quadratic.fromCycloOpt(underlying) match {
-      case Opt(q) => q.print(sb)
-      case _ =>
-        defaultPrint(sb)
+  override def toString: String =
+    if (underlying.nTerms == 0) "0" else {
+      val sb = new StringBuilder
+      Quadratic.fromCycloOpt(underlying) match {
+        case Opt(q) => q.print(sb)
+        case _ =>
+          defaultPrint(sb)
+      }
+      sb.result()
     }
-    sb.result()
-  }
 
   override def equals(any: Any) = any match {
     case that: RealCyclo => this.underlying === that.underlying
