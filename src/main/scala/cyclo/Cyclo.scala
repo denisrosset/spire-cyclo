@@ -1,7 +1,6 @@
 package cyclo
 
 import scala.annotation.tailrec
-
 import spire.algebra._
 import spire.math.{Rational, SafeLong}
 import spire.syntax.cfor._
@@ -11,7 +10,8 @@ import spire.util.Opt
 final class Cyclo(val order: Int, // order of the cyclotomic
                   protected[cyclo] val exps: Array[Int], // exponents of the cyclotomic, in 0 .. order -1, increasing
                   protected[cyclo] val coeffs: Array[Rational] // corresponding (non-zero) values
-                 ) { lhs =>
+                 ) {
+  lhs =>
 
   def nTerms: Int = exps.length
 
@@ -29,77 +29,73 @@ final class Cyclo(val order: Int, // order of the cyclotomic
     if (ind >= 0) coeffs(ind) else Rational.zero
   }
 
+  protected def defaultPrint(sb: StringBuilder): Unit = {
+    val eStr = s"e($order)"
+
+    def baseExp(exp: Int): Unit = {
+      sb ++= eStr
+      if (exp > 1) {
+        sb ++= "^";
+        sb ++= exp.toString
+      }
+    }
+
+    def leadingTerm(exp: Int, coeff: Rational): Unit =
+      if (exp == 0) sb ++= coeff.toString
+      else if (coeff.isOne) baseExp(exp)
+      else if (coeff == -1) {
+        sb ++= "-";
+        baseExp(exp)
+      }
+      else if (coeff > 0) {
+        sb ++= coeff.toString;
+        sb ++= "*";
+        baseExp(exp)
+      }
+      else if (coeff < 0) {
+        sb ++= "-";
+        sb ++= coeff.abs.toString;
+        sb ++= "*";
+        baseExp(exp)
+      }
+      else sys.error("Coefficient coeff cannot be zero")
+
+    leadingTerm(exps(0), coeffs(0))
+
+    def followingTerm(exp: Int, coeff: Rational): Unit =
+      if (coeff.isOne) {
+        sb ++= " + ";
+        baseExp(exp)
+      }
+      else if (coeff == -1) {
+        sb ++= " - ";
+        baseExp(exp)
+      }
+      else if (coeff > 0) {
+        sb ++= " + ";
+        sb ++= coeff.toString;
+        sb ++= "*";
+        baseExp(exp)
+      }
+      else if (coeff < 0) {
+        sb ++= " - ";
+        sb ++= coeff.abs.toString;
+        sb ++= "*";
+        baseExp(exp)
+      }
+      else sys.error("Coefficient coeff cannot be zero")
+
+    cforRange(1 until nTerms) { k =>
+      followingTerm(exps(k), coeffs(k))
+    }
+  }
+
   override def toString: String =
     if (nTerms == 0) "0" else {
-
       val sb = new StringBuilder
-
-      this match {
-        case Cyclo.Quadratic(a, b, d) =>
-          val hasConstant = a.signum match {
-            case -1 =>
-              sb ++= "-"
-              sb ++= a.abs.toString
-              true
-            case 1 =>
-              sb ++= a.toString
-              true
-            case _ => false // case 0
-          }
-          val hasSqrt = b.signum match {
-            case -1 =>
-              sb ++= "-"
-              val numAbs = -b.numerator
-              if (!numAbs.isOne) {
-                sb ++= numAbs.toString
-                sb ++= "*"
-              }
-              true
-            case 1 =>
-              if (hasConstant) sb ++= "+"
-              if (!b.numerator.isOne) {
-                sb ++= b.numerator.toString
-                sb ++= "*"
-              }
-              true
-            case _ => false // case 0
-          }
-          if (hasSqrt) {
-            sb ++= "sqrt("
-            sb ++= d.toString
-            sb ++= ")"
-            if (!b.denominator.isOne) {
-              sb ++= "/"
-              sb ++= b.denominator.toString
-            }
-          }
-        case _ =>
-          val eStr = s"e($order)"
-          def baseExp(exp: Int): Unit = {
-            sb ++= eStr
-            if (exp > 1) { sb ++= "^"; sb ++= exp.toString }
-          }
-
-          def leadingTerm(exp: Int, coeff: Rational): Unit =
-            if (exp == 0) sb ++= coeff.toString
-            else if (coeff.isOne) baseExp(exp)
-            else if (coeff == -1) { sb ++= "-"; baseExp(exp) }
-            else if (coeff > 0) { sb ++= coeff.toString; sb ++= "*"; baseExp(exp) }
-            else if (coeff < 0) { sb ++= "-"; sb ++= coeff.abs.toString; sb ++= "*"; baseExp(exp) }
-            else sys.error("Coefficient coeff cannot be zero")
-
-          leadingTerm(exps(0), coeffs(0))
-
-          def followingTerm(exp: Int, coeff: Rational): Unit =
-            if (coeff.isOne) { sb ++= " + "; baseExp(exp) }
-            else if (coeff == -1) { sb ++= " - "; baseExp(exp) }
-            else if (coeff > 0) { sb ++= " + "; sb ++= coeff.toString; sb ++= "*"; baseExp(exp) }
-            else if (coeff < 0) { sb ++= " - "; sb ++= coeff.abs.toString; sb ++= "*"; baseExp(exp) }
-            else sys.error("Coefficient coeff cannot be zero")
-
-          cforRange(1 until nTerms) { k =>
-            followingTerm(exps(k), coeffs(k))
-          }
+      Quadratic.fromCycloOpt(this) match {
+        case Opt(q) => q.print(sb)
+        case _ => defaultPrint(sb)
       }
       sb.result()
     }
@@ -389,6 +385,8 @@ final class Cyclo(val order: Int, // order of the cyclotomic
     else if (nTerms == 0) Rational.zero
     else coeffs(0)
 
+  def toRationalOpt: Opt[Rational] = if (isRational) Opt(toRational) else Opt.empty[Rational]
+
   def conj: Cyclo = galois(-1)
 
   def isReal: Boolean = this === this.conj
@@ -590,28 +588,7 @@ object Cyclo {
     (a + a.conj) * oneHalf
   }
 
-  object AsRational {
-
-    def unapply(x: Cyclo): Opt[Rational] = if (x.isRational) Opt(x.toRational) else Opt.empty[Rational]
-
-  }
-
-  object Quadratic {
-
-    /** Returns, if they exist, rationals `a`, `b` and integer `d` such that `x = a + b sqrt(d)`, with d minimal. */
-    def unapply(x: Cyclo): Opt[(Rational, Rational, Int)] = x.order match {
-      case 1 => Opt((x.toRational, Rational.zero, 1))
-      case d =>
-        val sd = Cyclo.sqrt(d)
-        if (sd.order != x.order) return Opt.empty[(Rational, Rational, Int)]
-        val nonZeroExp = if (sd.exponent(0) != 0) sd.exponent(0) else sd.exponent(1)
-        val b = x.coefficientForExponent(nonZeroExp) / sd.coefficientForExponent(nonZeroExp)
-        val a = x - sd * b
-        val factors = Factors(d)
-        a match {
-          case AsRational(ra) => Opt((ra, b * factors.squarePartSqrt, factors.squareFreePart))
-          case _ => Opt.empty[(Rational, Rational, Int)]
-        }
-    }
-  }
 }
+
+
+

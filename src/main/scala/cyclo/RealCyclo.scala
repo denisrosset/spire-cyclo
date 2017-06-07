@@ -14,7 +14,92 @@ final class RealCyclo protected[cyclo](val underlying: Cyclo) {
 
   override def hashCode: Int = underlying.hashCode
 
-  override def toString: String = underlying.toString
+  protected def defaultPrint(sb: StringBuilder): Unit = {
+    import underlying.{order, exps, coeffs, nTerms}
+
+    def cosTerm(exp: Int): Unit = {
+      require(exp != 0)
+      sb ++= "cos("
+      val n: Long = 2 * exp
+      val d: Long = order
+      val g = spire.math.gcd(n, d)
+      val n1 = n / g
+      val d1 = d / g
+      if (n1 < 0)
+        sb ++= "-"
+      val n2 = spire.math.abs(n1)
+      if (n2 == 1) {
+        sb ++= "pi"
+      } else {
+        sb ++= n2.toString
+        sb ++= "*pi"
+      }
+      if (d1 != 1) {
+        sb ++= "/"
+        sb ++= d1.toString
+      }
+      sb ++= ")"
+    }
+
+    def leadingTerm(exp: Int, coeff: Rational): Unit =
+      if (exp == 0) sb ++= coeff.toString
+      else if (coeff.isOne) cosTerm(exp)
+      else if (coeff == -1) {
+        sb ++= "-";
+        cosTerm(exp)
+      }
+      else if (coeff > 0) {
+        sb ++= coeff.toString;
+        sb ++= "*";
+        cosTerm(exp)
+      }
+      else if (coeff < 0) {
+        sb ++= "-";
+        sb ++= coeff.abs.toString;
+        sb ++= "*";
+        cosTerm(exp)
+      }
+      else sys.error("Coefficient coeff cannot be zero")
+
+    leadingTerm(exps(0), coeffs(0))
+
+    def followingTerm(exp: Int, coeff: Rational): Unit =
+      if (coeff.isOne) {
+        sb ++= " + ";
+        cosTerm(exp)
+      }
+      else if (coeff == -1) {
+        sb ++= " - ";
+        cosTerm(exp)
+      }
+      else if (coeff > 0) {
+        sb ++= " + ";
+        sb ++= coeff.toString;
+        sb ++= "*";
+        cosTerm(exp)
+      }
+      else if (coeff < 0) {
+        sb ++= " - ";
+        sb ++= coeff.abs.toString;
+        sb ++= "*";
+        cosTerm(exp)
+      }
+      else sys.error("Coefficient coeff cannot be zero")
+
+    cforRange(1 until nTerms) { k =>
+      followingTerm(exps(k), coeffs(k))
+    }
+  }
+
+  override def toString: String = {
+    val sb = new StringBuilder
+    Quadratic.fromCycloOpt(underlying) match {
+      case Opt(q) => q.print(sb)
+      case _ =>
+        defaultPrint(sb)
+    }
+    sb.result()
+  }
 
   override def equals(any: Any) = any match {
     case that: RealCyclo => this.underlying === that.underlying
