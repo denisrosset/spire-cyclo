@@ -1,10 +1,10 @@
-val scala211Version = "2.11.8"
-val scala212Version = "2.12.1"
+val scala211Version = "2.11.12"
+val scala212Version = "2.12.5"
 
-val disciplineVersion = "0.7.2"
-val scalaCheckVersion = "1.13.4"
-val scalaTestVersion = "3.0.1"
-val spireVersion = "0.14.1"
+val disciplineVersion = "0.8"
+val scalaCheckVersion = "1.13.5"
+val scalaTestVersion = "3.0.5"
+val spireVersion = "0.15.0"
 
 libraryDependencies ++= Seq(
   "org.typelevel" %% "spire" % spireVersion,
