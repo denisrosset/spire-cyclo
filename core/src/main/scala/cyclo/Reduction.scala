@@ -110,7 +110,7 @@ object Reduction {
           var eql = true
           var i = 0
           while (i < n && eql) {
-            var cof = els((i + n/p) % n)
+            val cof = els((i + n/p) % n)
             var k = i + 2*n/p
             while (k < i + n && eql) {
               if (cof != els(k % n)) eql = false

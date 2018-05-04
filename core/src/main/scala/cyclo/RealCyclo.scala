@@ -1,12 +1,9 @@
 package cyclo
 
-import java.math.RoundingMode
-
 import spire.algebra._
 import spire.math.{Algebraic, Rational, SafeLong}
 import spire.syntax.cfor._
 import spire.syntax.field._
-// import spire.syntax.truncatedDivision._
 import spire.syntax.eq._
 import spire.util.Opt
 
@@ -141,23 +138,7 @@ final class RealCyclo protected[cyclo](val underlying: Cyclo) {
 
 }
 
-
-trait RealCycloSigned extends SignedAdditiveAbGroup[RealCyclo] /* with TruncatedDivisionCRing[RealCyclo] */ {
-
-/*
-  def toBigIntOpt(x: RealCyclo): Opt[BigInt] =
-    if (!x.underlying.isRational) Opt.empty[BigInt]
-    else x.underlying.toRational.toBigIntOpt
-
-  def tquot(x: RealCyclo, y: RealCyclo): RealCyclo = RealCyclo((x / y).toAlgebraic.toBigDecimal(0, RoundingMode.DOWN).toBigInt)
-
-  def tmod(x: RealCyclo, y: RealCyclo): RealCyclo = x - tquot(x, y) * y
- */
-  def compare(x: RealCyclo, y: RealCyclo): Int = Order[Algebraic].compare(x.toAlgebraic, y.toAlgebraic)
-
-}
-
-trait RealCycloField extends Field.WithDefaultGCD[RealCyclo] {
+final class RealCycloTypeclasses extends Field.WithDefaultGCD[RealCyclo] with SignedAdditiveAbGroup[RealCyclo] with Involution[RealCyclo] {
   def plus(c1: RealCyclo, c2: RealCyclo) = new RealCyclo(c1.underlying + c2.underlying)
   override def minus(c1: RealCyclo, c2: RealCyclo) = new RealCyclo(c1.underlying - c2.underlying)
   def times(c1: RealCyclo, c2: RealCyclo) = new RealCyclo(c1.underlying * c2.underlying)
@@ -167,14 +148,17 @@ trait RealCycloField extends Field.WithDefaultGCD[RealCyclo] {
     if (n == 0) RealCyclo.zero else RealCyclo(n)
 
   def one = RealCyclo.one
-  override def reciprocal(c: RealCyclo) = new RealCyclo(c.underlying.reciprocal)
-  def div(c1: RealCyclo, c2: RealCyclo) = new RealCyclo(c1.underlying / c2.underlying)
+  override def reciprocal(c: RealCyclo): RealCyclo = new RealCyclo(c.underlying.reciprocal)
+  def div(c1: RealCyclo, c2: RealCyclo): RealCyclo = new RealCyclo(c1.underlying / c2.underlying)
 
 
   override def pow(a: RealCyclo, n: Int): RealCyclo = new RealCyclo(a.underlying.pow(n))
-  override def isZero(a: RealCyclo)(implicit ev: Eq[RealCyclo]) = a.underlying.isZero
+  override def isZero(a: RealCyclo)(implicit ev: Eq[RealCyclo]): Boolean = a.underlying.isZero
 
-  override def isOne(a: RealCyclo)(implicit ev: Eq[RealCyclo]) = a.underlying.isOne
+  override def isOne(a: RealCyclo)(implicit ev: Eq[RealCyclo]): Boolean = a.underlying.isOne
+
+  def compare(x: RealCyclo, y: RealCyclo): Int = Order[Algebraic].compare(x.toAlgebraic, y.toAlgebraic)
+  def adjoint(x: RealCyclo): RealCyclo = x
 }
 
 object RealCyclo {
@@ -184,7 +168,7 @@ object RealCyclo {
   protected val firstKind = spire.math.poly.SpecialPolynomials.chebyshevsFirstKind[Rational](maxOrder)
   protected val secondKind = spire.math.poly.SpecialPolynomials.chebyshevsSecondKind[Rational](maxOrder)
 
-  implicit object algebra extends RealCycloSigned with RealCycloField
+  implicit val typeclasses: RealCycloTypeclasses = new RealCycloTypeclasses
 
   val zero = new RealCyclo(Cyclo.zero)
 

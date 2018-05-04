@@ -70,11 +70,11 @@ class NonNegInt(val v: Int) extends AnyVal { lhs =>
     if (rhs.v == 1) return 1
 
     var x = lhs.v
-    var xz = numberOfTrailingZeros(x)
+    val xz = numberOfTrailingZeros(x)
     x = x >> xz
 
     var y = rhs.v
-    var yz = numberOfTrailingZeros(y)
+    val yz = numberOfTrailingZeros(y)
     y = y >> yz
 
     while (x != y) {

@@ -387,13 +387,13 @@ final class Cyclo(val order: Int, // order of the cyclotomic
 
   def toRationalOpt: Opt[Rational] = if (isRational) Opt(toRational) else Opt.empty[Rational]
 
-  def conj: Cyclo = galois(-1)
+  def conjugate: Cyclo = galois(-1)
 
-  def isReal: Boolean = this === this.conj
+  def isReal: Boolean = this === this.conjugate
 
-  def real: Cyclo = (this + conj) * oneHalf
+  def real: Cyclo = (this + conjugate) * oneHalf
 
-  def imag: Cyclo = (conj - this) * Cyclo.i * oneHalf
+  def imag: Cyclo = (conjugate - this) * Cyclo.i * oneHalf
 
   def conductor: Int = order // because the order has been reduced
 
@@ -408,7 +408,7 @@ final class Cyclo(val order: Int, // order of the cyclotomic
 
   def isGaussianInteger = isGaussianRational && hasIntegerCoefficients
 
-  def modulusSquared: Cyclo = this * this.conj
+  def modulusSquared: Cyclo = this * this.conjugate
 
   def abs: Opt[Cyclo] = {
     val ms = modulusSquared
@@ -425,13 +425,11 @@ final class Cyclo(val order: Int, // order of the cyclotomic
 
 }
 
-trait CycloEq extends Eq[Cyclo] {
+final class CycloTypeclasses extends Eq[Cyclo] with Field.WithDefaultGCD[Cyclo] with Involution[Cyclo] with FieldAssociativeAlgebra[Cyclo, RealCyclo] {
+
+  implicit def scalar: Field[RealCyclo] = RealCyclo.typeclasses
 
   def eqv(x: Cyclo, y: Cyclo) = x === y
-
-}
-
-trait CycloField extends Field.WithDefaultGCD[Cyclo] {
 
   def plus(c1: Cyclo, c2: Cyclo) = c1 + c2
   override def minus(c1: Cyclo, c2: Cyclo) = c1 - c2
@@ -451,11 +449,15 @@ trait CycloField extends Field.WithDefaultGCD[Cyclo] {
 
   override def isOne(a: Cyclo)(implicit ev: Eq[Cyclo]) = a.isOne
 
+  def adjoint(x: Cyclo): Cyclo = x.conjugate
+
+  def timesl(r: RealCyclo, v: Cyclo): Cyclo = r.underlying * v
+
 }
 
 object Cyclo {
 
-  implicit object algebra extends CycloEq with CycloField
+  implicit val typeclasses: CycloTypeclasses = new CycloTypeclasses
 
   implicit def viewFromRational(r: Rational): Cyclo = Cyclo(r)
 
@@ -561,7 +563,7 @@ object Cyclo {
     if (p.signum >= 0)
       e(q.toInt).pow(p.toInt) * r
     else
-      e(q.toInt).pow((-p).toInt).conj * r
+      e(q.toInt).pow((-p).toInt).conjugate * r
   }
 
   def polarDeg(r: Rational, deg: Rational): Cyclo = polarRev(r, deg / 360)
@@ -576,7 +578,7 @@ object Cyclo {
     if (!nm.isValidInt) sys.error(s"Rational $n is too complex, numerator $nm does not fit in an Int.")
     if (!dn.isValidInt) sys.error(s"Rational $n is too complex, denominator $dn does not fit in an Int.")
     val a = e(dn.toInt).pow(nm.toInt)
-    (a.conj - a) * i * oneHalf * dn.signum
+    (a.conjugate - a) * i * oneHalf * dn.signum
   }
 
   def cosRev(n: Rational): Cyclo = {
@@ -585,7 +587,7 @@ object Cyclo {
     if (!nm.isValidInt) sys.error(s"Rational $n is too complex, numerator $nm does not fit in an Int.")
     if (!dn.isValidInt) sys.error(s"Rational $n is too complex, denominator $dn does not fit in an Int.")
     val a = e(dn.toInt).pow(nm.toInt)
-    (a + a.conj) * oneHalf
+    (a + a.conjugate) * oneHalf
   }
 
 }
