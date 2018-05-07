@@ -2,9 +2,9 @@ package cyclo
 
 import spire.algebra._
 import spire.math.{Algebraic, Rational, SafeLong}
+import spire.syntax.eq._
 import spire.syntax.cfor._
 import spire.syntax.field._
-import spire.syntax.eq._
 import spire.util.Opt
 
 final class RealCyclo protected[cyclo](val underlying: Cyclo) {
@@ -157,7 +157,12 @@ final class RealCycloTypeclasses extends Field.WithDefaultGCD[RealCyclo] with Si
 
   override def isOne(a: RealCyclo)(implicit ev: Eq[RealCyclo]): Boolean = a.underlying.isOne
 
+  override def eqv(x: RealCyclo, y: RealCyclo): Boolean = minus(x, y).isZero
+
+  override def neqv(x: RealCyclo, y: RealCyclo): Boolean = !eqv(x, y)
+
   def compare(x: RealCyclo, y: RealCyclo): Int = Order[Algebraic].compare(x.toAlgebraic, y.toAlgebraic)
+
   def adjoint(x: RealCyclo): RealCyclo = x
 }
 
