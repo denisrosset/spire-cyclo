@@ -3,7 +3,7 @@ val scalaVersions = Map("2.11" -> "2.11.12", "2.12" -> "2.12.6")
 val disciplineVersion = "0.8"
 val scalaCheckVersion = "1.13.5"
 val scalaTestVersion = "3.0.5"
-val spireVersion = "0.15.1-SNAPSHOT"
+val spireVersion = "0.16.0"
 
 lazy val spireCyclo = (project in file("."))
   .settings(moduleName := "cyclo")
